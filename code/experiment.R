@@ -7,9 +7,10 @@ run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000)
 {
   # simulate 50 networks
   networks = sample_networks(m = n,
-                             theta = theta, 
-                             nodes = nodes, 
+                             theta = theta,
+                             nodes = nodes,
                              iters = 10^4)
+
   
   # estimate theta with SGLD
   estimates = matrix(ncol=2, nrow=n)

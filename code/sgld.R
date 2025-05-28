@@ -35,8 +35,8 @@ sgld <- function(y, epsilon_D, nabla = 0, m = 10, iterations = 10000) {
       my_sum <- my_sum + c(kstar(y_tilde[[i]], 1), kstar(y_tilde[[i]], 2))
     }
     estimate <- my_sum / m
-    nabla <- E_k - estimate + nabla
-    theta_prime <- theta[t,] + 0.5*epsilon_D %*% nabla + rnorm(1, 0, epsilon_D)
+    nabla_cond <- E_k - estimate + nabla
+    theta_prime <- theta[t,] + 0.5*epsilon_D %*% nabla_cond + rnorm(1, 0, epsilon_D)
     if (theta_verify(theta_prime))
     {
       theta[t+1, ] = theta_prime

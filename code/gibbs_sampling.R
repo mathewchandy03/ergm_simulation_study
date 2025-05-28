@@ -51,26 +51,38 @@ sample_network <- function(Y, theta, iters)
 
 sample_networks <- function(Y=NULL, m, theta, nodes, iters)
 {
+  net <- network.initialize(nodes, directed=F)
+  model_formula <- net ~ kstar(1:2)
+  coefs <- theta
+  
+  sim_nets <- simulate(model_formula, coef=coefs, nsim=m, output="network")
+  nets = vector(mode = 'list', length = m)
+  for (i in 1:m)
+  {
+    nets[[i]] = as.matrix.network(sim_nets[[i]], matrix.type = 'adjacency')
+  }
   # n: number of networks to sample
   # iters: iterations between each sample
   # returns a vector with all the networks
-  nets = vector(mode = "list", length = m)
   
-  if (is.null(Y))
-  {
-    current_net = matrix(0, nrow=nodes, ncol=nodes)
-  }
-  else
-  {
-    current_net = Y
-  }
   
-  for (i in 1:m)
-  {
-    current_net = sample_network(current_net, theta, iters)
-    nets[[i]] = current_net
-  }
-  nets
+  # nets = vector(mode = "list", length = m)
+  # 
+  # if (is.null(Y))
+  # {
+  #   current_net = matrix(0, nrow=nodes, ncol=nodes)
+  # }
+  # else
+  # {
+  #   current_net = Y
+  # }
+  # 
+  # for (i in 1:m)
+  # {
+  #   current_net = sample_network(current_net, theta, iters)
+  #   nets[[i]] = current_net
+  # }
+  # nets
 }
 
 kstar <- function(adj_matrix, k)
@@ -78,3 +90,22 @@ kstar <- function(adj_matrix, k)
   degrees = rowSums(adj_matrix)
   sum(choose(degrees, k))
 }
+
+net <- network.initialize(50, directed=F)
+model_formula <- net ~ kstar(1:2)
+coefs <- c(-2, 0.0042)
+
+sim_nets <- simulate(model_formula, coef=coefs, nsim=50, output="stats")
+
+Y = matrix(0, nrow=50, ncol=50)
+current_sweep = Y
+theta_1_chain = c()
+theta_2_chain = c()
+for (i in 1:(10000))
+{
+  current_sweep = sweep(current_sweep, c(-2, 0.0042))
+  theta_1_chain = c(theta_1_chain, kstar(current_sweep, 1))
+  theta_2_chain = c(theta_2_chain, kstar(current_sweep, 2))
+}
+current_sweep
+
