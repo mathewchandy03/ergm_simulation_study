@@ -82,7 +82,7 @@ sample_networks <- function(Y=NULL, m, theta, nodes, iters)
   #   current_net = sample_network(current_net, theta, iters)
   #   nets[[i]] = current_net
   # }
-  # nets
+  nets
 }
 
 kstar <- function(adj_matrix, k)
