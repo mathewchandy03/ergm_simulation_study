@@ -16,7 +16,7 @@ sgld <- function(y, epsilon_D=NULL, nabla = 0, m = 10, iterations = 10000,
   
   # set epsilon_D if null
   if (is.null(epsilon_D)) {
-    epsilon_D = diag(0.01/E_k)
+    epsilon_D = diag(0.01/pmax(1e-6, E_k))
   }
   
   for(t in 1:iterations) {

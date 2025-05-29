@@ -77,11 +77,12 @@ data <- data.frame(n = numeric(), theta_1_bias_mean = numeric(),
 n <- c(20, 50, 75, 100)
 epsilon_D <- list(diag(c(0.004, 0.00012)), diag(c(5e-5, 5e-6)),
                   diag(c(5.64e-6, 5.64e-7)), diag(c(3.08e-6, 2.38e-7)))
-iterations = 10
-space = c(1, 2, 5, 10)
+iterations = 10000
+space = c(1, 5)
 for (s in space) {
+  # sprintf("space: %d", s)
   for (i in 1:4) {
-    results = run_experiment(2, c(-2, 0.0042), n[i], epsilon_D[[i]], 
+    results = run_experiment(50, c(-2, 0.0042), n[i], epsilon_D[[i]], 
                              iterations=iterations, 
                              space=s)
     theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
@@ -93,6 +94,7 @@ for (s in space) {
     new_row <- c(n[i], theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean,
                  theta_2_bias_sd, average_cpu_time, s, "original")
     data <- rbind(data, new_row)
+    # sprintf("original epsilon_D, %d nodes", n[i])
   }
   for (i in 1:4) {
     results = run_experiment(2, c(-2, 0.0042), n[i], epsilon_D=NULL, 
@@ -106,9 +108,10 @@ for (s in space) {
     new_row <- c(n[i], theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean,
                  theta_2_bias_sd, average_cpu_time, s, "null")
     data <- rbind(data, new_row)
+    # sprintf("null epsilon_D, %d nodes", n[i])
   }
 }
 colnames(data) = c("n", "theta_1_bias_mean", "theta_1_bias_sd", 
                    "theta_2_bias_mean", "theta_2_bias_msd", 
-                   "average_cpu_time", "space")
+                   "average_cpu_time", "space", "epsilon_D")
 
