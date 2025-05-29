@@ -3,7 +3,7 @@
 source("./gibbs_sampling.R")
 source("./sgld.R")
 
-run_experiment <- function(n, theta, nodes, epsilon_D, iterations=1000)
+run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000)
 {
   # simulate n networks
   networks = sample_networks(m = n,
@@ -46,7 +46,7 @@ n <- c(20, 50, 75, 100)
 epsilon_D <- list(diag(c(0.004, 0.00012)), diag(c(5e-5, 5e-6)),
                   diag(c(5.64e-6, 5.64e-7)), diag(c(3.08e-6, 2.38e-7)))
 for (i in 1:4) {
-  results = run_experiment(2, c(-2, 0.0042), n[i], epsilon_D[[i]], 1000)
+  results = run_experiment(2, c(-2, 0.0042), n[i], epsilon_D[[i]], 10000)
   theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
   theta_1_bias_mean <- mean(theta_bias[,1])
   theta_1_bias_sd <- sd(theta_bias[,1])
