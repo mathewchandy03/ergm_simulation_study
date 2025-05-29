@@ -3,9 +3,9 @@
 source("./gibbs_sampling.R")
 source("./sgld.R")
 
-run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000)
+run_experiment <- function(n, theta, nodes, epsilon_D, iterations=1000)
 {
-  # simulate 50 networks
+  # simulate n networks
   networks = sample_networks(m = n,
                              theta = theta,
                              nodes = nodes,
@@ -36,26 +36,50 @@ theta_chain = sgld(Y, diag(c(0.004, 0.00012)), iterations=10000)
 plot(theta_chain[, 1])
 plot(theta_chain[, 2])
 
-# data <- data.frame(n = numeric(), theta_1_bias_mean = numeric(), 
-#                    theta_1_bias_sd = numeric(),
-#                    theta_2_bias_mean = numeric(), theta_2_bias_msd = numeric(), 
-#                    average_cpu_time = numeric())
-# # Section 4.2
-# n <- c(20, 50, 75, 100)
-# epsilon_D <- list(diag(c(0.004, 0.00012)), diag(c(5e-5, 5e-6)),
-#                   diag(c(5.64e-6, 5.64e-7)), diag(c(3.08e-6, 2.38e-7)))
-# for (i in 1:4) {
-#   results = run_experiment(2, c(-2, 0.0042), n[i], epsilon_D[[i]], 100)
-#   theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
-#   theta_1_bias_mean <- mean(theta_bias[,1])
-#   theta_1_bias_sd <- sd(theta_bias[,1])
-#   theta_2_bias_mean <- mean(theta_bias[,2])
-#   theta_2_bias_sd <- sd(theta_bias[,2])
-#   average_cpu_time <- mean(results[[2]])
-#   new_row <- c(n[i], theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean, 
-#                theta_2_bias_sd)
-#   data <- rbind(data, new_row)
-# }
+# Section 4.2
+data <- data.frame(n = numeric(), theta_1_bias_mean = numeric(),
+                   theta_1_bias_sd = numeric(),
+                   theta_2_bias_mean = numeric(), theta_2_bias_msd = numeric(),
+                   average_cpu_time = numeric())
+
+n <- c(20, 50, 75, 100)
+epsilon_D <- list(diag(c(0.004, 0.00012)), diag(c(5e-5, 5e-6)),
+                  diag(c(5.64e-6, 5.64e-7)), diag(c(3.08e-6, 2.38e-7)))
+for (i in 1:4) {
+  results = run_experiment(2, c(-2, 0.0042), n[i], epsilon_D[[i]], 1000)
+  theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
+  theta_1_bias_mean <- mean(theta_bias[,1])
+  theta_1_bias_sd <- sd(theta_bias[,1])
+  theta_2_bias_mean <- mean(theta_bias[,2])
+  theta_2_bias_sd <- sd(theta_bias[,2])
+  average_cpu_time <- mean(results[[2]])
+  new_row <- c(n[i], theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean,
+               theta_2_bias_sd, average_cpu_time)
+  data <- rbind(data, new_row)
+}
+
+colnames(data) = c("n", "theta_1_bias_mean", "theta_1_bias_sd", 
+                   "theta_2_bias_mean", "theta_2_bias_msd", "average_cpu_time")
+data
+
+# Trace Plots Sweep Test
+net <- network.initialize(50, directed=F)
+model_formula <- net ~ kstar(1:2)
+coefs <- c(-2, 0.0042)
+
+sim_nets <- simulate(model_formula, coef=coefs, nsim=50, output="stats")
+
+Y = matrix(0, nrow=50, ncol=50)
+current_sweep = Y
+theta_1_chain = c()
+theta_2_chain = c()
+for (i in 1:(10000))
+{
+  current_sweep = sweep(current_sweep, c(-2, 0.0042))
+  theta_1_chain = c(theta_1_chain, kstar(current_sweep, 1))
+  theta_2_chain = c(theta_2_chain, kstar(current_sweep, 2))
+}
+current_sweep
 
 
 # Additional parameter choices
