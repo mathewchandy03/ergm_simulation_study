@@ -3,7 +3,8 @@
 source("./gibbs_sampling.R")
 source("./sgld.R")
 
-run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000)
+run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000, 
+                           space=1)
 {
   # simulate n networks
   networks = sample_networks(m = n,
@@ -18,7 +19,7 @@ run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000)
   for (i in 1:n)
   {
     start.time <- Sys.time()
-    estimate_chain = sgld(networks[[i]], epsilon_D, iterations=iterations)
+    estimate_chain = sgld(networks[[i]], epsilon_D, iterations=iterations,space)
     end.time <- Sys.time()
     estimates[i, ] = estimate_chain[iterations+1, ]
     times[i] = end.time - start.time
@@ -45,8 +46,9 @@ data <- data.frame(n = numeric(), theta_1_bias_mean = numeric(),
 n <- c(20, 50, 75, 100)
 epsilon_D <- list(diag(c(0.004, 0.00012)), diag(c(5e-5, 5e-6)),
                   diag(c(5.64e-6, 5.64e-7)), diag(c(3.08e-6, 2.38e-7)))
+space = 1
 for (i in 1:4) {
-  results = run_experiment(2, c(-2, 0.0042), n[i], epsilon_D[[i]], 10000)
+  results = run_experiment(2, c(-2, 0.0042), n[i], epsilon_D[[i]], 10000, space)
   theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
   theta_1_bias_mean <- mean(theta_bias[,1])
   theta_1_bias_sd <- sd(theta_bias[,1])
