@@ -8,11 +8,17 @@ theta_verify <- function(theta)
   condition1 & condition2 & condition3
 }
 
-sgld <- function(y, epsilon_D, nabla = 0, m = 10, iterations = 10000,
+sgld <- function(y, epsilon_D=NULL, nabla = 0, m = 10, iterations = 10000,
                  space=1) {
   theta <- matrix(ncol = 2, nrow = iterations + 1)
   theta[1, ] <- c(runif(1, -2.5, -1.5), runif(1, 0, 0.01))
   E_k <- c(kstar(y, 1), kstar(y, 2))
+  
+  # set epsilon_D if null
+  if (is.null(epsilon_D)) {
+    epsilon_D = diag(0.01/E_k)
+  }
+  
   for(t in 1:iterations) {
     y_tilde <- inner_markov_chain(y, m, theta[t,], space) # List of adjacency matrices?
     my_sum <- c(0, 0)

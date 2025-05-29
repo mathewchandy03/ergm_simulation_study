@@ -11,7 +11,7 @@ run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000,
                              theta = theta,
                              nodes = nodes,
                              iters = 10^4)
-
+  
   
   # estimate theta with SGLD
   estimates = matrix(ncol=2, nrow=n)
@@ -19,7 +19,8 @@ run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000,
   for (i in 1:n)
   {
     start.time <- Sys.time()
-    estimate_chain = sgld(networks[[i]], epsilon_D, iterations=iterations,space)
+    estimate_chain = sgld(networks[[i]], epsilon_D, iterations=iterations,
+                          space=space)
     end.time <- Sys.time()
     estimates[i, ] = estimate_chain[iterations+1, ]
     times[i] = end.time - start.time
@@ -36,33 +37,6 @@ theta_chain = sgld(Y, diag(c(0.004, 0.00012)), iterations=10000)
 
 plot(theta_chain[, 1])
 plot(theta_chain[, 2])
-
-# Section 4.2
-data <- data.frame(n = numeric(), theta_1_bias_mean = numeric(),
-                   theta_1_bias_sd = numeric(),
-                   theta_2_bias_mean = numeric(), theta_2_bias_msd = numeric(),
-                   average_cpu_time = numeric())
-
-n <- c(20, 50, 75, 100)
-epsilon_D <- list(diag(c(0.004, 0.00012)), diag(c(5e-5, 5e-6)),
-                  diag(c(5.64e-6, 5.64e-7)), diag(c(3.08e-6, 2.38e-7)))
-space = 1
-for (i in 1:4) {
-  results = run_experiment(2, c(-2, 0.0042), n[i], epsilon_D[[i]], 10000, space)
-  theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
-  theta_1_bias_mean <- mean(theta_bias[,1])
-  theta_1_bias_sd <- sd(theta_bias[,1])
-  theta_2_bias_mean <- mean(theta_bias[,2])
-  theta_2_bias_sd <- sd(theta_bias[,2])
-  average_cpu_time <- mean(results[[2]])
-  new_row <- c(n[i], theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean,
-               theta_2_bias_sd, average_cpu_time)
-  data <- rbind(data, new_row)
-}
-
-colnames(data) = c("n", "theta_1_bias_mean", "theta_1_bias_sd", 
-                   "theta_2_bias_mean", "theta_2_bias_msd", "average_cpu_time")
-data
 
 # Trace Plots Sweep Test
 net <- network.initialize(50, directed=F)
@@ -92,4 +66,49 @@ current_sweep
 
 # dirichlet prior
 # normal
+
+# Section 4.2
+data <- data.frame(n = numeric(), theta_1_bias_mean = numeric(),
+                   theta_1_bias_sd = numeric(),
+                   theta_2_bias_mean = numeric(), theta_2_bias_msd = numeric(),
+                   average_cpu_time = numeric(), m = numeric(),
+                   epsilon_D = character())
+
+n <- c(20, 50, 75, 100)
+epsilon_D <- list(diag(c(0.004, 0.00012)), diag(c(5e-5, 5e-6)),
+                  diag(c(5.64e-6, 5.64e-7)), diag(c(3.08e-6, 2.38e-7)))
+iterations = 10
+space = c(1, 2, 5, 10)
+for (s in space) {
+  for (i in 1:4) {
+    results = run_experiment(2, c(-2, 0.0042), n[i], epsilon_D[[i]], 
+                             iterations=iterations, 
+                             space=s)
+    theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
+    theta_1_bias_mean <- mean(theta_bias[,1])
+    theta_1_bias_sd <- sd(theta_bias[,1])
+    theta_2_bias_mean <- mean(theta_bias[,2])
+    theta_2_bias_sd <- sd(theta_bias[,2])
+    average_cpu_time <- mean(results[[2]])
+    new_row <- c(n[i], theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean,
+                 theta_2_bias_sd, average_cpu_time, s, "original")
+    data <- rbind(data, new_row)
+  }
+  for (i in 1:4) {
+    results = run_experiment(2, c(-2, 0.0042), n[i], epsilon_D=NULL, 
+                             iterations=iterations, space=s)
+    theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
+    theta_1_bias_mean <- mean(theta_bias[,1])
+    theta_1_bias_sd <- sd(theta_bias[,1])
+    theta_2_bias_mean <- mean(theta_bias[,2])
+    theta_2_bias_sd <- sd(theta_bias[,2])
+    average_cpu_time <- mean(results[[2]])
+    new_row <- c(n[i], theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean,
+                 theta_2_bias_sd, average_cpu_time, s, "null")
+    data <- rbind(data, new_row)
+  }
+}
+colnames(data) = c("n", "theta_1_bias_mean", "theta_1_bias_sd", 
+                   "theta_2_bias_mean", "theta_2_bias_msd", 
+                   "average_cpu_time", "space")
 
