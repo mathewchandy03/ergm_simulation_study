@@ -33,56 +33,6 @@ run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000,
  list(estimates, times)
 }
 
-# Section 4.2
-data <- data.frame(n = numeric(), theta_1_bias_mean = numeric(),
-                   theta_1_bias_sd = numeric(),
-                   theta_2_bias_mean = numeric(), theta_2_bias_msd = numeric(),
-                   average_cpu_time = numeric(), space = numeric(),
-                   epsilon_D = character())
-
-n <- c(20, 50, 75, 100)
-epsilon_D <- list(diag(c(0.004, 0.00012)), diag(c(5e-5, 5e-6)),
-                  diag(c(5.64e-6, 5.64e-7)), diag(c(3.08e-6, 2.38e-7)))
-iterations = 10000
-space = c(1, 5)
-for (s in space) {
-  print(sprintf("space: %d", s))
-  for (i in 1:4) {
-    results = run_experiment(50, c(-2, 0.0042), n[i], epsilon_D[[i]], 
-                             iterations=iterations, 
-                             space=s)
-    theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
-    theta_1_bias_mean <- mean(theta_bias[,1])
-    theta_1_bias_sd <- sd(theta_bias[,1])
-    theta_2_bias_mean <- mean(theta_bias[,2])
-    theta_2_bias_sd <- sd(theta_bias[,2])
-    average_cpu_time <- mean(results[[2]])
-    new_row <- c(n[i], theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean,
-                 theta_2_bias_sd, average_cpu_time, s, "original")
-    data <- rbind(data, new_row)
-    print(sprintf("original epsilon_D, %d nodes, time: %g" , n[i], 
-                  average_cpu_time))
-  }
-  for (i in 1:4) {
-    results = run_experiment(50, c(-2, 0.0042), n[i], epsilon_D=NULL, 
-                             iterations=iterations, space=s)
-    theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
-    theta_1_bias_mean <- mean(theta_bias[,1])
-    theta_1_bias_sd <- sd(theta_bias[,1])
-    theta_2_bias_mean <- mean(theta_bias[,2])
-    theta_2_bias_sd <- sd(theta_bias[,2])
-    average_cpu_time <- mean(results[[2]])
-    new_row <- c(n[i], theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean,
-                 theta_2_bias_sd, average_cpu_time, s, "null")
-    data <- rbind(data, new_row)
-    print(sprintf("null epsilon_D, %d nodes, time: %g" , n[i], 
-                  average_cpu_time))
-  }
-}
-colnames(data) = c("n", "theta_1_bias_mean", "theta_1_bias_sd", 
-                   "theta_2_bias_mean", "theta_2_bias_msd", 
-                   "average_cpu_time", "space", "epsilon_D")
-
 # run experiment for single node size in parallel
 results_for_node <- function(n, epsilon_D, iterations) {
   results = foreach(s=c(1,5)) %dopar% {
@@ -116,10 +66,34 @@ results_for_node <- function(n, epsilon_D, iterations) {
 }
 
 registerDoParallel(cores=8)
+
+set.seed(20, kind = "L'Ecuyer-CMRG")
+
 data20 = results_for_node(20, diag(c(0.004, 0.00012)), 10000)
 
-saveRDS(data20, file="./data20.Rds")
-# readRDS("./data20.Rds")
+saveRDS(data20, file="../data/data20.Rds")
+# readRDS("../data/data20.Rds")
+
+set.seed(50, kind = "L'Ecuyer-CMRG")
+
+data50 = results_for_node(50, diag(c(0.004, 0.00012)), 10000)
+
+saveRDS(data50, file="../data/data50.Rds")
+# readRDS("../data/data50.Rds")
+
+set.seed(75, kind = "L'Ecuyer-CMRG")
+
+data75 = results_for_node(75, diag(c(0.004, 0.00012)), 10000)
+
+saveRDS(data75, file="../data/data75.Rds")
+# readRDS("../data/data75.Rds")
+
+set.seed(100, kind = "L'Ecuyer-CMRG")
+
+data100 = results_for_node(100, diag(c(0.004, 0.00012)), 10000)
+
+saveRDS(data100, file="../data/data100.Rds")
+# readRDS("../data/data100.Rds")
 
 # Creating Plots
 n= 2
@@ -143,4 +117,58 @@ for (i in 1:n)
   points(c(estimate_chain[1, 1], estimate_chain[iterations+1, 1]), 
          c(estimate_chain[1, 2], estimate_chain[iterations+1, 2]),
          col="red")
+}
+
+
+my_local_experiment <- function() {
+  # Section 4.2
+  data <- data.frame(n = numeric(), theta_1_bias_mean = numeric(),
+                     theta_1_bias_sd = numeric(),
+                     theta_2_bias_mean = numeric(), theta_2_bias_msd = numeric(),
+                     average_cpu_time = numeric(), space = numeric(),
+                     epsilon_D = character())
+  
+  n <- c(20, 50, 75, 100)
+  epsilon_D <- list(diag(c(0.004, 0.00012)), diag(c(5e-5, 5e-6)),
+                    diag(c(5.64e-6, 5.64e-7)), diag(c(3.08e-6, 2.38e-7)))
+  iterations = 10000
+  space = c(1, 5)
+  for (s in space) {
+    print(sprintf("space: %d", s))
+    for (i in 1:4) {
+      results = run_experiment(50, c(-2, 0.0042), n[i], epsilon_D[[i]], 
+                               iterations=iterations, 
+                               space=s)
+      theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
+      theta_1_bias_mean <- mean(theta_bias[,1])
+      theta_1_bias_sd <- sd(theta_bias[,1])
+      theta_2_bias_mean <- mean(theta_bias[,2])
+      theta_2_bias_sd <- sd(theta_bias[,2])
+      average_cpu_time <- mean(results[[2]])
+      new_row <- c(n[i], theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean,
+                   theta_2_bias_sd, average_cpu_time, s, "original")
+      data <- rbind(data, new_row)
+      print(sprintf("original epsilon_D, %d nodes, time: %g" , n[i], 
+                    average_cpu_time))
+    }
+    for (i in 1:4) {
+      results = run_experiment(50, c(-2, 0.0042), n[i], epsilon_D=NULL, 
+                               iterations=iterations, space=s)
+      theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
+      theta_1_bias_mean <- mean(theta_bias[,1])
+      theta_1_bias_sd <- sd(theta_bias[,1])
+      theta_2_bias_mean <- mean(theta_bias[,2])
+      theta_2_bias_sd <- sd(theta_bias[,2])
+      average_cpu_time <- mean(results[[2]])
+      new_row <- c(n[i], theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean,
+                   theta_2_bias_sd, average_cpu_time, s, "null")
+      data <- rbind(data, new_row)
+      print(sprintf("null epsilon_D, %d nodes, time: %g" , n[i], 
+                    average_cpu_time))
+    }
+  }
+  colnames(data) = c("n", "theta_1_bias_mean", "theta_1_bias_sd", 
+                     "theta_2_bias_mean", "theta_2_bias_msd", 
+                     "average_cpu_time", "space", "epsilon_D")
+  data
 }
