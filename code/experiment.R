@@ -160,7 +160,40 @@ data_par <- foreach(1:n_experiments) %dopar% function(x) {
   new_row
 }
 
+registerDoParallel(cores=8)
+# single node size, parallel
+results_for_node <- function(n, epsilon_D, iterations) {
+  results = foreach(s=c(1,5)) %dopar% {
+    # loop over number of sweeps between samples (space)
+    foreach(x=0:1) %dopar% {
+      # loop over which epsilon D value to use (default or NULL)
+      if (x == 0) {
+        epD = epsilon_D
+      }
+      else {
+        epD = NULL
+      }
+      results = run_experiment(50, c(-2, 0.0042), n, epsilon_D=epD, 
+                               iterations=iterations, 
+                               space=s)
+      theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
+      theta_1_bias_mean <- mean(theta_bias[,1])
+      theta_1_bias_sd <- sd(theta_bias[,1])
+      theta_2_bias_mean <- mean(theta_bias[,2])
+      theta_2_bias_sd <- sd(theta_bias[,2])
+      average_cpu_time <- mean(results[[2]])
+      new_row <- c(n, theta_1_bias_mean, theta_1_bias_sd, theta_2_bias_mean,
+                   theta_2_bias_sd, average_cpu_time, s, x)
+    }
+  }
+  results = matrix(unlist(unlist(results, recursive=F)), nrow=4, byrow=T)
+  colnames(results) = c("n", "theta_1_bias_mean", "theta_1_bias_sd", 
+                     "theta_2_bias_mean", "theta_2_bias_msd", 
+                     "average_cpu_time", "space", "epsilon_D_null")
+  results
+}
 
+data20 = results_for_node(20, diag(c(0.004, 0.00012)), 10000)
 
 # Creating Plots
 n= 2
