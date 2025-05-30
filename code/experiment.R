@@ -3,6 +3,11 @@
 source("./gibbs_sampling.R")
 source("./sgld.R")
 
+library(iterators)
+library(parallel)
+library(foreach)
+library(doParallel)
+
 run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000, 
                            space=1)
 {
@@ -22,7 +27,8 @@ run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000,
     estimate_chain = sgld(networks[[i]], epsilon_D, iterations=iterations,
                           space=space)
     end.time <- Sys.time()
-    estimates[i, ] = estimate_chain[iterations+1, ]
+    # estimates[i, ] = estimate_chain[iterations+1, ]
+    estimates[i, ] = colMeans(estimate_chain[iterations/2:iterations+1,])
     times[i] = end.time - start.time
   }
  list(estimates, times)
@@ -71,7 +77,7 @@ current_sweep
 data <- data.frame(n = numeric(), theta_1_bias_mean = numeric(),
                    theta_1_bias_sd = numeric(),
                    theta_2_bias_mean = numeric(), theta_2_bias_msd = numeric(),
-                   average_cpu_time = numeric(), m = numeric(),
+                   average_cpu_time = numeric(), space = numeric(),
                    epsilon_D = character())
 
 n <- c(20, 50, 75, 100)
@@ -116,3 +122,65 @@ for (s in space) {
 colnames(data) = c("n", "theta_1_bias_mean", "theta_1_bias_sd", 
                    "theta_2_bias_mean", "theta_2_bias_msd", 
                    "average_cpu_time", "space", "epsilon_D")
+
+
+# parallel
+arguments = list()
+for (s in space) {
+  for (i in 1:4) {
+    curr_args = list(n=n[i], epsilon_D=epsilon_D[[i]], space=s, 
+                     iterations=iterations)
+    arguments = list.append(curr_args)
+  }
+  for (i in 1:4) {
+    curr_args = list(n=n[i], epsilon_D=NULL, space=s, 
+                     iterations=iterations)
+    arguments = list.append(curr_args)
+  }
+}
+
+n_experiments = length(arguments)
+data_par = matrix(nrow=n_experiments, ncol=8)
+
+data_par <- foreach(1:n_experiments) %dopar% function(x) {
+  curr_args = arguments[[x]]
+  results = run_experiment(50, c(-2, 0.0042), n=curr_args$n,
+                           epsilon_D = curr_args$epsilon_D, 
+                           iterations=curr_args$iterations, 
+                           space=curr_args$space)
+  theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
+  theta_1_bias_mean <- mean(theta_bias[,1])
+  theta_1_bias_sd <- sd(theta_bias[,1])
+  theta_2_bias_mean <- mean(theta_bias[,2])
+  theta_2_bias_sd <- sd(theta_bias[,2])
+  average_cpu_time <- mean(results[[2]])
+  new_row <- c(curr_args$n, theta_1_bias_mean, theta_1_bias_sd, 
+               theta_2_bias_mean,theta_2_bias_sd, average_cpu_time, 
+               curr_args$space, is.null(curr_args$epsilon_D))
+  new_row
+}
+
+
+
+# Creating Plots
+n= 2
+iterations=1000
+networks = sample_networks(m = n,
+                           theta = c(-2, 0.0042),
+                           nodes = 50,
+                           iters = 10^4)
+
+estimates = matrix(ncol=2, nrow=n)
+times = rep(NA, n)
+for (i in 1:n)
+{
+  start.time <- Sys.time()
+  estimate_chain = sgld(networks[[i]], diag(c(0.004, 0.00012)), iterations=iterations)
+  end.time <- Sys.time()
+  estimates[i, ] = estimate_chain[iterations+1, ]
+  times[i] = end.time - start.time
+  plot(estimate_chain, main=i, xlab="theta1", ylab="theta2")
+  points(c(estimate_chain[1, 1], estimate_chain[iterations+1, 1]), 
+         c(estimate_chain[1, 2], estimate_chain[iterations+1, 2]),
+         col="red")
+}
