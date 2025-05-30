@@ -2,6 +2,7 @@ source('gibbs_sampling.R')
 
 theta_verify <- function(theta)
 {
+  # returns true if theta is within the parameter space
   condition1 = (theta[1] >= -4) & (theta[1] <= 2)
   condition2 = (theta[2] >= -0.05) & (theta[2] <= 1)
   condition3 = theta[1]^2 + theta[2]^2 <= 16
@@ -20,6 +21,7 @@ sgld <- function(y, epsilon_D=NULL, nabla = 0, m = 10, iterations = 10000,
   }
   
   for(t in 1:iterations) {
+    # estimate expected value of statistics
     y_tilde <- inner_markov_chain(y, m, theta[t,], space) # List of adjacency matrices?
     my_sum <- c(0, 0)
     for(i in 1:m) {
@@ -27,9 +29,12 @@ sgld <- function(y, epsilon_D=NULL, nabla = 0, m = 10, iterations = 10000,
     }
     estimate <- my_sum / m
     nabla_cond <- E_k - estimate + nabla
+    
+    # update theta
     theta_prime <- theta[t,] + 0.5*epsilon_D %*% nabla_cond + rnorm(1, 0, epsilon_D)
     if (theta_verify(theta_prime))
     {
+      # change to proposed theta if it is in the parameter space
       theta[t+1, ] = theta_prime
     }
     else
@@ -43,32 +48,6 @@ sgld <- function(y, epsilon_D=NULL, nabla = 0, m = 10, iterations = 10000,
 inner_markov_chain <- function(y, m, theta, space=1)
 {
   # from gibbs_sampling.R
+  # samples m networks
   sample_networks(y, m, theta, nrow(y), space)
-}
-
-sgld_no_chain <- function(y, epsilon_D=NULL, nabla = 0, m = 10, iterations = 10000,
-                 space=1) {
-  theta <- c(runif(1, -2.5, -1.5), runif(1, 0, 0.01))
-  E_k <- c(kstar(y, 1), kstar(y, 2))
-  
-  # set epsilon_D if null
-  if (is.null(epsilon_D)) {
-    epsilon_D = diag(0.01/pmax(1e-6, E_k))
-  }
-  
-  for(t in 1:iterations) {
-    y_tilde <- inner_markov_chain(y, m, theta, space)
-    my_sum <- c(0, 0)
-    for(i in 1:m) {
-      my_sum <- my_sum + c(kstar(y_tilde[[i]], 1), kstar(y_tilde[[i]], 2))
-    }
-    estimate <- my_sum / m
-    nabla_cond <- E_k - estimate + nabla
-    theta_prime <- theta + 0.5*epsilon_D %*% nabla_cond + rnorm(1, 0, epsilon_D)
-    if (theta_verify(theta_prime))
-    {
-      theta = theta_prime
-    }
-  }
-  return(theta)
 }

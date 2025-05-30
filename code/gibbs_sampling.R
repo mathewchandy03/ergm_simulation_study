@@ -25,9 +25,12 @@ sweep <- function(Y, theta)
         
         # i and j share an edge with probability p
         new_value = 1*(runif(1) <= p)
+        
+        # update both directions because network in undirected
         adj_matrix[i,j] = new_value
         adj_matrix[j,i] = new_value
         
+        # update degrees
         change = new_value - current_value
         degrees[i] = degrees[i] + change
         degrees[j] = degrees[j] + change 
@@ -39,8 +42,8 @@ sweep <- function(Y, theta)
 
 sample_network <- function(Y, theta, iters)
 {
-  # runs a iters sweeps to sample a network, from a starting network Y
-  # Y: adjacency matrix
+  # runs iters number of sweeps to sample a network, from a starting network Y
+  # Y is the adjacency matrix
   current_sweep = Y
   for (i in 1:(iters))
   {
@@ -51,26 +54,15 @@ sample_network <- function(Y, theta, iters)
 
 sample_networks <- function(Y=NULL, m, theta, nodes, iters)
 {
-  # net <- network.initialize(nodes, directed=F)
-  # model_formula <- net ~ kstar(1:2)
-  # coefs <- theta
-  # 
-  # sim_nets <- simulate(model_formula, coef=coefs, nsim=m, output="network")
-  # nets = vector(mode = 'list', length = m)
-  # for (i in 1:m)
-  # {
-  #   nets[[i]] = as.matrix.network(sim_nets[[i]], matrix.type = 'adjacency')
-  # }
-  
   # n: number of networks to sample
   # iters: iterations between each sample
-  # returns a vector with all the networks
-  
-  
+  # returns a vector with m networks
+
   nets = vector(mode = "list", length = m)
 
   if (is.null(Y))
   {
+    # start with no edges if adjacency matrix is not provided
     current_net = matrix(0, nrow=nodes, ncol=nodes)
   }
   else
@@ -80,6 +72,7 @@ sample_networks <- function(Y=NULL, m, theta, nodes, iters)
 
   for (i in 1:m)
   {
+    # sample a network, use as the starting network for the next sample
     current_net = sample_network(current_net, theta, iters)
     nets[[i]] = current_net
   }
@@ -88,6 +81,7 @@ sample_networks <- function(Y=NULL, m, theta, nodes, iters)
 
 kstar <- function(adj_matrix, k)
 {
+  # calculates the kstar count of a given adjacency matrix
   degrees = rowSums(adj_matrix)
   sum(choose(degrees, k))
 }

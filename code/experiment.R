@@ -27,51 +27,11 @@ run_experiment <- function(n, theta, nodes, epsilon_D, iterations=10000,
     estimate_chain = sgld(networks[[i]], epsilon_D, iterations=iterations,
                           space=space)
     end.time <- Sys.time()
-    # estimates[i, ] = estimate_chain[iterations+1, ]
     estimates[i, ] = colMeans(estimate_chain[iterations/2:iterations+1,])
     times[i] = end.time - start.time
   }
  list(estimates, times)
 }
-
-# running an experiment
-results = run_experiment(1, c(-2, 0.0042), 20, diag(c(0.004, 0.00012)))
-
-# getting SGLD chain
-Y = sample_networks(Y=NULL, 1, c(-2, 0.0042), 20, 10^4)[[1]]
-theta_chain = sgld(Y, diag(c(0.004, 0.00012)), iterations=10000)
-
-plot(theta_chain[, 1])
-plot(theta_chain[, 2])
-
-# Trace Plots Sweep Test
-net <- network.initialize(50, directed=F)
-model_formula <- net ~ kstar(1:2)
-coefs <- c(-2, 0.0042)
-
-sim_nets <- simulate(model_formula, coef=coefs, nsim=50, output="stats")
-
-Y = matrix(0, nrow=50, ncol=50)
-current_sweep = Y
-theta_1_chain = c()
-theta_2_chain = c()
-for (i in 1:(10000))
-{
-  current_sweep = sweep(current_sweep, c(-2, 0.0042))
-  theta_1_chain = c(theta_1_chain, kstar(current_sweep, 1))
-  theta_2_chain = c(theta_2_chain, kstar(current_sweep, 2))
-}
-current_sweep
-
-
-# Additional parameter choices
-# epsilon_D <- diag(0.01 / E_k)
-# epsilon_D <- diag(0.01 / estimate)
-
-# tie-no-tie
-
-# dirichlet prior
-# normal
 
 # Section 4.2
 data <- data.frame(n = numeric(), theta_1_bias_mean = numeric(),
@@ -123,50 +83,12 @@ colnames(data) = c("n", "theta_1_bias_mean", "theta_1_bias_sd",
                    "theta_2_bias_mean", "theta_2_bias_msd", 
                    "average_cpu_time", "space", "epsilon_D")
 
-
-# parallel
-arguments = list()
-for (s in space) {
-  for (i in 1:4) {
-    curr_args = list(n=n[i], epsilon_D=epsilon_D[[i]], space=s, 
-                     iterations=iterations)
-    arguments = list.append(curr_args)
-  }
-  for (i in 1:4) {
-    curr_args = list(n=n[i], epsilon_D=NULL, space=s, 
-                     iterations=iterations)
-    arguments = list.append(curr_args)
-  }
-}
-
-n_experiments = length(arguments)
-data_par = matrix(nrow=n_experiments, ncol=8)
-
-data_par <- foreach(1:n_experiments) %dopar% function(x) {
-  curr_args = arguments[[x]]
-  results = run_experiment(50, c(-2, 0.0042), n=curr_args$n,
-                           epsilon_D = curr_args$epsilon_D, 
-                           iterations=curr_args$iterations, 
-                           space=curr_args$space)
-  theta_bias <- base::sweep(results[[1]], 2, c(-2, 0.0042))
-  theta_1_bias_mean <- mean(theta_bias[,1])
-  theta_1_bias_sd <- sd(theta_bias[,1])
-  theta_2_bias_mean <- mean(theta_bias[,2])
-  theta_2_bias_sd <- sd(theta_bias[,2])
-  average_cpu_time <- mean(results[[2]])
-  new_row <- c(curr_args$n, theta_1_bias_mean, theta_1_bias_sd, 
-               theta_2_bias_mean,theta_2_bias_sd, average_cpu_time, 
-               curr_args$space, is.null(curr_args$epsilon_D))
-  new_row
-}
-
-registerDoParallel(cores=8)
-# single node size, parallel
+# run experiment for single node size in parallel
 results_for_node <- function(n, epsilon_D, iterations) {
   results = foreach(s=c(1,5)) %dopar% {
     # loop over number of sweeps between samples (space)
     foreach(x=0:1) %dopar% {
-      # loop over which epsilon D value to use (default or NULL)
+      # loop over which epsilon D value to use (provided or NULL)
       if (x == 0) {
         epD = epsilon_D
       }
@@ -193,7 +115,11 @@ results_for_node <- function(n, epsilon_D, iterations) {
   results
 }
 
+registerDoParallel(cores=8)
 data20 = results_for_node(20, diag(c(0.004, 0.00012)), 10000)
+
+saveRDS(data20, file="./data20.Rds")
+# readRDS("./data20.Rds")
 
 # Creating Plots
 n= 2
@@ -208,7 +134,8 @@ times = rep(NA, n)
 for (i in 1:n)
 {
   start.time <- Sys.time()
-  estimate_chain = sgld(networks[[i]], diag(c(0.004, 0.00012)), iterations=iterations)
+  estimate_chain = sgld(networks[[i]], diag(c(0.004, 0.00012)), 
+                        iterations=iterations)
   end.time <- Sys.time()
   estimates[i, ] = estimate_chain[iterations+1, ]
   times[i] = end.time - start.time
